@@ -4,7 +4,22 @@ A single-file HTML tool for encrypting and decrypting text with a keyed substitu
 
 ## Usage
 
-Open `Keyed Substitution Cipher.html` in any modern browser. No build step, no dependencies.
+**Browser:** open `Keyed Substitution Cipher.html` in any modern browser. No build step, no dependencies.
+
+**Python CLI:**
+
+```sh
+python3 cipher.py CIPHER "Hello World"      # Bejjm Wmqjh
+python3 cipher.py -d CIPHER "Bejjm Wmqjh"   # Hello World
+echo "Hello World" | python3 cipher.py CIPHER
+```
+
+Or import it:
+
+```python
+from cipher import encrypt, decrypt
+encrypt("Hello World", "CIPHER")  # 'Bejjm Wmqjh'
+```
 
 ## How it works
 
