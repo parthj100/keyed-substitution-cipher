@@ -4,7 +4,7 @@ A single-file HTML tool for encrypting and decrypting text with a keyed substitu
 
 ## Usage
 
-**Browser:** open `Keyed Substitution Cipher.html` in any modern browser. No build step, no dependencies.
+**Browser:** open `index.html` in any modern browser. No build step, no dependencies.
 
 **Python CLI:**
 
