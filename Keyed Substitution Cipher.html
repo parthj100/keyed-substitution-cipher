@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Keyed Substitution Cipher</title>
+<style>
+  :root {
+    --color-background-primary: #ffffff;
+    --color-background-secondary: #f5f4ee;
+    --color-background-tertiary: #faf9f5;
+    --color-text-primary: #1a1a1a;
+    --color-text-secondary: #5f5e5a;
+    --color-text-tertiary: #888780;
+    --color-border-tertiary: rgba(0,0,0,0.12);
+    --color-border-secondary: rgba(0,0,0,0.25);
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    --font-mono: "SF Mono", Menlo, Monaco, Consolas, monospace;
+    --border-radius-md: 8px;
+    --border-radius-lg: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --color-background-primary: #1f1f1e;
+      --color-background-secondary: #2a2a29;
+      --color-background-tertiary: #161615;
+      --color-text-primary: #f1f0ea;
+      --color-text-secondary: #b4b2a9;
+      --color-text-tertiary: #888780;
+      --color-border-tertiary: rgba(255,255,255,0.12);
+      --color-border-secondary: rgba(255,255,255,0.25);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 2rem 1rem;
+    background: var(--color-background-tertiary);
+    color: var(--color-text-primary);
+    font-family: var(--font-sans);
+    line-height: 1.5;
+  }
+  input, textarea, button {
+    font-family: inherit;
+    color: var(--color-text-primary);
+  }
+  input[type="text"], textarea {
+    background: var(--color-background-primary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-md);
+    padding: 8px 12px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  input[type="text"]:hover, textarea:hover { border-color: var(--color-border-secondary); }
+  input[type="text"]:focus, textarea:focus {
+    border-color: var(--color-border-secondary);
+    box-shadow: 0 0 0 2px rgba(100,100,100,0.15);
+  }
+  input[type="text"] { height: 36px; }
+  button {
+    background: transparent;
+    border: 0.5px solid var(--color-border-secondary);
+    border-radius: var(--border-radius-md);
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.05s;
+    color: var(--color-text-primary);
+  }
+  button:hover { background: var(--color-background-secondary); }
+  button:active { transform: scale(0.98); }
+
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+  .cipher-wrap { max-width: 900px; margin: 0 auto; padding: 1rem 0; font-family: var(--font-sans); }
+  .cipher-card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 20px; display: flex; flex-direction: column; gap: 18px; }
+  .cipher-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .cipher-title { font-size: 16px; font-weight: 500; color: var(--color-text-primary); margin: 0; }
+  .cipher-sub { font-size: 13px; color: var(--color-text-secondary); margin: 2px 0 0; }
+  .mode-tabs { display: inline-flex; background: var(--color-background-secondary); padding: 3px; border-radius: var(--border-radius-md); gap: 2px; }
+  .mode-tab { border: none; padding: 6px 14px; font-size: 13px; font-weight: 500; border-radius: 6px; cursor: pointer; background: transparent; color: var(--color-text-secondary); font-family: inherit; transition: background 0.15s, color 0.15s; }
+  .mode-tab.active { background: var(--color-background-primary); color: var(--color-text-primary); box-shadow: 0 0 0 0.5px var(--color-border-tertiary); }
+  .field-label { font-size: 12px; color: var(--color-text-secondary); display: block; margin-bottom: 6px; }
+  .key-input { width: 100%; text-transform: uppercase; font-family: var(--font-mono); letter-spacing: 3px; font-size: 14px; }
+  .alpha-panel { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 14px; }
+  .alpha-grid { display: flex; flex-direction: column; gap: 4px; }
+  .alpha-row { display: flex; align-items: center; gap: 10px; }
+  .alpha-label { font-size: 10px; color: var(--color-text-tertiary); width: 44px; text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0; }
+  .alpha-cells { display: grid; grid-template-columns: repeat(26, 1fr); gap: 3px; flex: 1; }
+  .alpha-cell { height: 28px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 13px; border-radius: 4px; background: var(--color-background-primary); color: var(--color-text-primary); border: 0.5px solid var(--color-border-tertiary); }
+  .alpha-cell.key-part { background: #E1F5EE; color: #085041; border-color: #1D9E75; }
+  @media (prefers-color-scheme: dark) {
+    .alpha-cell.key-part { background: #085041; color: #E1F5EE; border-color: #1D9E75; }
+  }
+  .io-grid { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 10px; align-items: stretch; }
+  .io-col { display: flex; flex-direction: column; min-width: 0; }
+  .io-box { flex: 1; font-family: var(--font-mono); font-size: 13px; resize: vertical; min-height: 100px; line-height: 1.5; }
+  .io-box[readonly] { background: var(--color-background-secondary); }
+  .arrow-col { display: flex; align-items: center; justify-content: center; padding-top: 20px; color: var(--color-text-tertiary); font-size: 16px; }
+  .action-bar { display: flex; gap: 8px; flex-wrap: wrap; }
+  .action-bar button { font-size: 13px; }
+  .info-box { font-size: 12px; color: var(--color-text-secondary); line-height: 1.6; padding: 10px 12px; background: var(--color-background-secondary); border-radius: var(--border-radius-md); }
+  .info-box strong { color: var(--color-text-primary); font-weight: 500; }
+  @media (max-width: 560px) { .io-grid { grid-template-columns: 1fr; } .arrow-col { transform: rotate(90deg); padding: 0; } }
+</style>
+</head>
+<body>
+
+<h2 class="sr-only">Interactive substitution cipher tool with key-shifted alphabet for encrypting and decrypting text</h2>
+
+<div class="cipher-wrap">
+  <div class="cipher-card">
+
+    <div class="cipher-header">
+      <div>
+        <p class="cipher-title">Keyed substitution cipher</p>
+        <p class="cipher-sub">Encrypt and decrypt with a shifted alphabet</p>
+      </div>
+      <div class="mode-tabs" role="tablist">
+        <button id="mode-enc" class="mode-tab active" role="tab">Encrypt</button>
+        <button id="mode-dec" class="mode-tab" role="tab">Decrypt</button>
+      </div>
+    </div>
+
+    <div>
+      <label class="field-label" for="key">Key</label>
+      <input type="text" id="key" class="key-input" value="CIPHER" placeholder="e.g. SECRET"/>
+    </div>
+
+    <div>
+      <label class="field-label">Alphabet mapping</label>
+      <div class="alpha-panel">
+        <div class="alpha-grid">
+          <div class="alpha-row">
+            <span class="alpha-label">Plain</span>
+            <div id="row-plain" class="alpha-cells"></div>
+          </div>
+          <div class="alpha-row">
+            <span class="alpha-label">Cipher</span>
+            <div id="row-cipher" class="alpha-cells"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="io-grid">
+      <div class="io-col">
+        <label id="label-in" class="field-label" for="input">Plaintext</label>
+        <textarea id="input" class="io-box" rows="4" placeholder="Type something...">Hello World</textarea>
+      </div>
+      <div class="arrow-col" id="arrow">&rarr;</div>
+      <div class="io-col">
+        <label id="label-out" class="field-label" for="output">Ciphertext</label>
+        <textarea id="output" class="io-box" rows="4" readonly></textarea>
+      </div>
+    </div>
+
+    <div class="action-bar">
+      <button id="swap">Swap &harr;</button>
+      <button id="copy">Copy output</button>
+      <button id="clear">Clear</button>
+    </div>
+
+    <div class="info-box">
+      <strong>How it works.</strong> The key (deduplicated) becomes the start of the cipher alphabet; the remaining A&ndash;Z letters fill the rest in order. Each plaintext letter maps to the cipher letter directly below it. Non-letters pass through unchanged and case is preserved.
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function(){
+  const A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const keyEl = document.getElementById('key');
+  const inputEl = document.getElementById('input');
+  const outputEl = document.getElementById('output');
+  const rowP = document.getElementById('row-plain');
+  const rowC = document.getElementById('row-cipher');
+  const modeEnc = document.getElementById('mode-enc');
+  const modeDec = document.getElementById('mode-dec');
+  const labelIn = document.getElementById('label-in');
+  const labelOut = document.getElementById('label-out');
+  const arrow = document.getElementById('arrow');
+  let mode = 'enc';
+
+  function buildCipherAlphabet(key){
+    const clean = (key || '').toUpperCase().replace(/[^A-Z]/g, '');
+    const seen = new Set();
+    let result = '';
+    for (const ch of clean){ if (!seen.has(ch)){ seen.add(ch); result += ch; } }
+    for (const ch of A){ if (!seen.has(ch)){ seen.add(ch); result += ch; } }
+    return result;
+  }
+
+  function keyUniqueLen(){
+    const clean = (keyEl.value || '').toUpperCase().replace(/[^A-Z]/g, '');
+    const seen = new Set();
+    for (const ch of clean) seen.add(ch);
+    return seen.size;
+  }
+
+  function renderAlphabet(keyLen){
+    const cipher = buildCipherAlphabet(keyEl.value);
+    rowP.innerHTML = '';
+    rowC.innerHTML = '';
+    for (let i = 0; i < 26; i++){
+      const p = document.createElement('div');
+      p.className = 'alpha-cell';
+      p.textContent = A[i];
+      rowP.appendChild(p);
+
+      const c = document.createElement('div');
+      c.className = 'alpha-cell' + (i < keyLen ? ' key-part' : '');
+      c.textContent = cipher[i];
+      rowC.appendChild(c);
+    }
+  }
+
+  function process(){
+    const cipher = buildCipherAlphabet(keyEl.value);
+    const src = inputEl.value;
+    let out = '';
+    for (const ch of src){
+      const upper = ch.toUpperCase();
+      const idx = A.indexOf(upper);
+      if (idx === -1){ out += ch; continue; }
+      const isLower = ch !== upper;
+      let mapped;
+      if (mode === 'enc'){ mapped = cipher[idx]; }
+      else { const ci = cipher.indexOf(upper); mapped = ci === -1 ? ch : A[ci]; }
+      out += isLower ? mapped.toLowerCase() : mapped;
+    }
+    outputEl.value = out;
+  }
+
+  function setMode(m){
+    mode = m;
+    if (m === 'enc'){
+      modeEnc.classList.add('active'); modeDec.classList.remove('active');
+      labelIn.textContent = 'Plaintext';
+      labelOut.textContent = 'Ciphertext';
+      arrow.innerHTML = '&rarr;';
+    } else {
+      modeDec.classList.add('active'); modeEnc.classList.remove('active');
+      labelIn.textContent = 'Ciphertext';
+      labelOut.textContent = 'Plaintext';
+      arrow.innerHTML = '&larr;';
+    }
+    update();
+  }
+
+  function update(){
+    renderAlphabet(keyUniqueLen());
+    process();
+  }
+
+  keyEl.addEventListener('input', () => { keyEl.value = keyEl.value.toUpperCase(); update(); });
+  inputEl.addEventListener('input', process);
+  modeEnc.addEventListener('click', () => setMode('enc'));
+  modeDec.addEventListener('click', () => setMode('dec'));
+
+  document.getElementById('swap').addEventListener('click', () => {
+    const tmp = inputEl.value;
+    inputEl.value = outputEl.value;
+    outputEl.value = tmp;
+    setMode(mode === 'enc' ? 'dec' : 'enc');
+  });
+
+  const copyBtn = document.getElementById('copy');
+  copyBtn.addEventListener('click', () => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(outputEl.value).then(() => {
+        const orig = copyBtn.textContent;
+        copyBtn.textContent = 'Copied \u2713';
+        setTimeout(() => copyBtn.textContent = orig, 1200);
+      });
+    }
+  });
+
+  document.getElementById('clear').addEventListener('click', () => {
+    inputEl.value = '';
+    outputEl.value = '';
+  });
+
+  update();
+})();
+</script>
+
+</body>
+</html>
